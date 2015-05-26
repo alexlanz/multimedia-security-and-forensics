@@ -1,80 +1,44 @@
 require("MMSec")
 
-# Load images
-files <- array(c(
-	"Canon-EOS-1200D/Image01.jpg",
-	"Canon-EOS-1200D/Image02.jpg",
-	"Canon-EOS-1200D/Image03.jpg",
-	"Canon-EOS-1200D/Image04.jpg",
-	"Canon-EOS-1200D/Image05.jpg",
-	"Canon-EOS-1200D/Image06.jpg",
-	"Canon-EOS-1200D/Image07.jpg",
-	"Canon-EOS-1200D/Image08.jpg",
-	"Canon-EOS-1200D/Image12.jpg",
-	"Canon-EOS-1200D/Image13.jpg",
-	"Canon-EOS-1200D/Image14.jpg",
-	"Canon-EOS-1200D/Image15.jpg"
-	))
+# Load image
+image <- load.png("images/1.png")
+image <- as.matrix(image) * 255
 
-# Number of images
-N <- dim(files)
+# p-map
+coefficient <- array(c(-0.25, 0.5, -0.25, 0.5, 0, 0.5, -0.25, 0.5, -0.25), c(3, 3))
 
-# Size of images
-image <- load.jpg(files[1])
+filtered <- lin.filter.2d(image, coefficient=coefficient)
+subtracted <- image - filtered
+pmap <- dnorm(subtracted)
 
-dim <- dim(image)
+save.png(greymap(pmap), "outputs/exercise02-pmap.png", overwrite=TRUE)
+
+# Zero mean
+dim <- dim(pmap)
 height <- dim[1]
 width <- dim[2]
-
-# Initialize reference noise
-reference <- image
 
 for (x in 1:height) {
 	for (y in 1:width) {
 		
-		reference$red[x,y] <- 0
-		reference$green[x,y] <- 0
-		reference$blue[x,y] <- 0
+		
 
 	}
 }
 
-referenceR <- reference$red
-referenceG <- reference$green
-referenceB <- reference$blue
+mean <- mean(pmap)
+zero <- pmap - mean
 
-# Sensor noise
-for (i in 1:N) {
+# Frequency domain
+frequency <- fft(zero)
 
-	print(files[i])
+png(filename="outputs/exercise02-frequency.png")
+plot(frequency, xlim=c(-5, 5), ylim=c(-5, 5))
+dev.off()
 
-	image <- load.jpg(files[i])
+density <- density(subtracted)
+print(density)
 
-	denoiseR <- median.2d(image$red, 3)
-	denoiseG <- median.2d(image$green, 3)
-	denoiseB <- median.2d(image$blue, 3)
-
-	denoise <- image
-	denoise$red <- denoiseR
-	denoise$green <- denoiseG
-	denoise$blue <- denoiseB
-
-	noise <- diff(image, denoise)
-
-	referenceR <- referenceR + noise$red
-	referenceG <- referenceG + noise$green
-	referenceB <- referenceB + noise$blue
-
-}
-
-# Reference noise
-referenceR <- referenceR / N
-referenceG <- referenceG / N
-referenceB <- referenceB / N
-
-reference$red <- referenceR
-reference$green <- referenceG
-reference$blue <- referenceB
-
-# Save reference
-save.jpg(reference, "outputs/exercise02-reference.jpg", overwrite=TRUE)
+png(filename="outputs/exercise02-density.png")
+plot(density)
+dev.off()
